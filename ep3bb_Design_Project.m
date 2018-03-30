@@ -61,19 +61,31 @@ i=1;
 global proportional_term
 global integral_term
 global derivative_term
+
+
+%Determine the optimal values for the proportional, integral and derivative terms via experimentation 
+old_pos = 0; %old position of ball 
+
 comport = serial('COM3', 'baud', 155300, 'FlowControl','none');
 fopen(comport);
 %fwrite(comport, set/3);
 while (run==1)
    clock_input = fread(comport,1,'uint16');
-   x(i) = ((clock_input)/8000000*34300/2);
+
+   x(i) = ((clock_input)/8000000*34300/2); %current position of stepper motor!?!?
    err(i) = setpoint -x(i);
    P_out = proportional_term*err(i);
-   %I_out = trapz(something or other)*integral_term;
-   %D_out = derivative_term*deriv of something;
+   I_out = integral_term*trapz(err);
+   D_out = derivative_term*(x(i)-x(i-1));
+   
    %plot(1:i,x);
    %ylim([-30 30]);
-   new_pos = old_pos +P_out+I_out+D_out;
+   new_pos = old_pos +P_out+I_out +D_out; %new position of ball 
+   
+   old_pos = new_pos;
+   
+   %D_out; Derivative term may not be needed 
+
    
    i=i+1;
    
