@@ -57,43 +57,53 @@ global run
 global set
 setpoint = 25;
 run=1;
-i=1;
+i=2;
 global proportional_term
 global integral_term
 global derivative_term
-
-
-%Determine the optimal values for the proportional, integral and derivative terms via experimentation 
-old_pos = 0; %old position of ball 
-
+proportional_term = 0.1; %initialize the PID values
+integral_term = 0;
+derivative_term = 0;
+text = fopen('new.txt','a');
+fmt = '%5d \n'; %test text file for diagnostic purposes
+%Determine the optimal values for the proportional, integral and derivative 
+%terms via experimentation 
+old_pos = 280; %original position of the motor
 comport = serial('COM3', 'baud', 155300, 'FlowControl','none');
 fopen(comport);
-%fwrite(comport, set/3);
+fwrite(comport, old_pos/3);
 while (run==1)
    clock_input = fread(comport,1,'uint16');
 
-   x(i) = ((clock_input)/8000000*34300/2); %current position of stepper motor!?!?
-   err(i) = setpoint -x(i);
+   x(i) = ((clock_input)/2000000*34300/2); %current position of the ball 
+   err(i) = x(i)-setpoint; %calculates error from position
+   if (x==2) %initializes x so derivative term stays within bounds
+       x(1) = x(2);
+       err(1) = err(2);
+   end
    P_out = proportional_term*err(i);
-   I_out = integral_term*trapz(err);
+   I_out = integral_term*trapz(err); %PID term calculation
    D_out = derivative_term*(x(i)-x(i-1));
    
-   %plot(1:i,x);
-   %ylim([-30 30]);
+   plot(2:i,err(2:i));
+   ylim([-25 25]);
    new_pos = old_pos +P_out+I_out +D_out; %new position of ball 
-   
-   old_pos = new_pos;
-   
-   %D_out; Derivative term may not be needed 
-
-   
-   i=i+1;
-   
+   fprintf(text,fmt,new_pos); %diagnostics text file write
+   %compares the new_pos to the limits and changes it to match the absolute
+   %limits. limits values may need to be updated with number of steps. 
+   i=i+1;   
+   if (new_pos > 300)
+       new_pos = 300;
+   elseif (new_pos <230)
+       new_pos = 230;
+   end
+   old_pos = new_pos; 
    fwrite(comport, new_pos/3);
    drawnow
 end
 %plot(i,x)
-fclose(comport)
+fclose(comport);
+fclose(text);
 
 % --- Executes on button press in stop.
 function stop_Callback(hObject, eventdata, handles)
