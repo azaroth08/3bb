@@ -64,6 +64,7 @@ global derivative_term
 proportional_term = 0.1; %initialize the PID values
 integral_term = 0;
 derivative_term = 0;
+h = 0.001; %This is to calculate the derivative (error - previous error)/h is the derivative 
 text = fopen('new.txt','a');
 fmt = '%5d \n'; %test text file for diagnostic purposes
 %Determine the optimal values for the proportional, integral and derivative 
@@ -76,14 +77,15 @@ while (run==1)
    clock_input = fread(comport,1,'uint16');
 
    x(i) = ((clock_input)/2000000*34300/2); %current position of the ball 
-   err(i) = x(i)-setpoint; %calculates error from position
+   err(i) = x(i)-setpoint; %calculates error from position of ball
    if (x==2) %initializes x so derivative term stays within bounds
        x(1) = x(2);
        err(1) = err(2);
    end
+   last_err = err(end-100+1:end); %last_err is the vector array that stores the last 100 error values 
    P_out = proportional_term*err(i);
-   I_out = integral_term*trapz(err); %PID term calculation
-   D_out = derivative_term*(x(i)-x(i-1));
+   I_out = integral_term*trapz(last_err); 
+   D_out = derivative_term*((err(i)-err(i-1))/h); 
    
    plot(2:i,err(2:i));
    ylim([-25 25]);
